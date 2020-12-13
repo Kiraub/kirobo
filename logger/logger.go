@@ -53,12 +53,15 @@ func Errorf(format string, args ...interface{}) (int, error) {
 
 // Logger is a struct that contains logging functions
 type Logger struct {
-	InfoFormat  string
-	DebugFormat string
-	ErrorFormat string
-	InfoOut     *os.File
-	DebugOut    *os.File
-	ErrorOut    *os.File
+	InfoFormat      string
+	DebugFormat     string
+	ErrorFormat     string
+	InfoOut         *os.File
+	DebugOut        *os.File
+	ErrorOut        *os.File
+	InfoLogEnabled  bool
+	DebugLogEnabled bool
+	ErrorLogEnabled bool
 }
 
 // CreateLogger returns a new logger struct with default formatting strings and output streams
@@ -70,20 +73,32 @@ func CreateLogger() *Logger {
 	l.InfoOut = os.Stdout
 	l.DebugOut = os.Stderr
 	l.ErrorOut = os.Stderr
+	l.InfoLogEnabled = true
+	l.DebugLogEnabled = true
+	l.ErrorLogEnabled = true
 	return l
 }
 
 // Infof ...
 func (r *Logger) Infof(format string, args ...interface{}) (int, error) {
+	if !r.InfoLogEnabled {
+		return 0, nil
+	}
 	return fPrintf(r.InfoOut, r.InfoFormat, format, args...)
 }
 
 // Debugf ...
 func (r *Logger) Debugf(format string, args ...interface{}) (int, error) {
+	if !r.DebugLogEnabled {
+		return 0, nil
+	}
 	return fPrintf(r.DebugOut, r.DebugFormat, format, args...)
 }
 
 // Errorf ...
 func (r *Logger) Errorf(format string, args ...interface{}) (int, error) {
+	if !r.ErrorLogEnabled {
+		return 0, nil
+	}
 	return fPrintf(r.ErrorOut, r.ErrorFormat, format, args...)
 }

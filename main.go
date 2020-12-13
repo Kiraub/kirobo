@@ -36,13 +36,13 @@ func main() {
 	runFs.Parse(os.Args[2:])
 	logger.Debugf("%v, %v", subCommand, token)
 
-	k := kirobo.BuildKirobo()
+	k := kirobo.BuildKirobo("KIROBO")
 	err := k.Connect(token)
 	if err != nil {
 		logger.Errorf("Something unexpected happened: %v", err)
 		panic(err)
 	}
-	k.EnablePingPong(true)
+	k.ToggleFeature(kirobo.PingPong, true)
 	sc := make(chan os.Signal)
 	signal.Notify(sc, os.Interrupt)
 	<-sc
