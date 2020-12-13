@@ -13,17 +13,27 @@ const (
 	run
 )
 
+const logPrefix = "MAIN#"
+
+var log *logger.Logger
+var runFs *flag.FlagSet
+
 var subCommands = map[string]uint8{
 	"help": help,
 	"run":  run,
 }
 
-var runFs *flag.FlagSet = flag.NewFlagSet("main", flag.PanicOnError)
 var subCommand string
 var token string
 
 func init() {
+	runFs = flag.NewFlagSet("run", flag.PanicOnError)
 	runFs.StringVar(&token, "t", "", "App token")
+
+	log = logger.CreateLogger()
+	log.InfoFormat = logPrefix + logger.InfoFormat
+	log.DebugFormat = logPrefix + logger.DebugFormat
+	log.ErrorFormat = logPrefix + logger.ErrorFormat
 }
 
 func main() {

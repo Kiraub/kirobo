@@ -79,6 +79,16 @@ func CreateLogger() *Logger {
 	return l
 }
 
+// Enter prints debug log that records region entering
+func (r *Logger) Enter(region string) (int, error) {
+	return r.Debugf("Entering %v", region)
+}
+
+// Exit prints debug log that records region exiting
+func (r *Logger) Exit(region string) (int, error) {
+	return r.Debugf("Exitting %v", region)
+}
+
 // Infof ...
 func (r *Logger) Infof(format string, args ...interface{}) (int, error) {
 	if !r.InfoLogEnabled {

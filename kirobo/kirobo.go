@@ -37,6 +37,8 @@ func BuildKirobo(logPrefix string) *Kirobo {
 // If a session already exists with the same token, this function does nothing.
 // If a session already exists with another token, that session is closed first.
 func (r *Kirobo) Connect(token string) error {
+	r.log.Enter("Connect")
+	defer r.log.Exit("Connect")
 	// Close existing session if it has a different token
 	if r.session != nil {
 		if r.session.Identify.Token == token {
@@ -52,23 +54,27 @@ func (r *Kirobo) Connect(token string) error {
 	}
 	r.session = dgSession
 	if err := r.session.Open(); err != nil {
-		logger.Errorf("Error connecting: %v", err)
+		r.log.Errorf("Error connecting: %v", err)
 	}
-	logger.Debugf("Connected %v", r.session.State.SessionID)
+	r.log.Debugf("Connected %v", r.session.State.SessionID)
 	return nil
 }
 
 // Disconnect ...
 func (r *Kirobo) Disconnect() error {
+	r.log.Enter("Disconnect")
+	defer r.log.Exit("Disconnect")
 	if r.session == nil {
 		return nil
 	}
-	logger.Debugf("Disconnected")
+	r.log.Debugf("Disconnected")
 	return r.session.Close()
 }
 
 // ToggleFeature ...
 func (r *Kirobo) ToggleFeature(fKey features.FeatureKey, enable bool) (success bool) {
+	r.log.Enter("ToggleFeature")
+	defer r.log.Exit("ToggleFeature")
 	success = true
 	r.log.Debugf("Attempting to toggle feature %v", fKey)
 	f, ok := r.features[fKey]
