@@ -39,26 +39,27 @@ func init() {
 func main() {
 	exeName := os.Args[0]
 	if len(os.Args) < 3 {
-		logger.Errorf("%v requires a subcommand to execute", exeName)
+		log.Errorf("%v requires a subcommand to execute", exeName)
 		return
 	}
 	subCommand = os.Args[1]
 	runFs.Parse(os.Args[2:])
-	logger.Debugf("%v, %v", subCommand, token)
+	log.Debugf("%v, %v", subCommand, token)
 
 	k := kirobo.BuildKirobo("KIROBO")
 	err := k.Connect(token)
 	if err != nil {
-		logger.Errorf("Something unexpected happened: %v", err)
+		log.Errorf("Something unexpected happened: %v", err)
 		panic(err)
 	}
 	k.ToggleFeature(kirobo.PingPong, true)
 	sc := make(chan os.Signal)
 	signal.Notify(sc, os.Interrupt)
 	<-sc
+	log.Infof("Interrupt received")
 	err = k.Disconnect()
 	if err != nil {
-		logger.Errorf("Something unexpected happened: %v", err)
+		log.Errorf("Something unexpected happened: %v", err)
 		panic(err)
 	}
 }
