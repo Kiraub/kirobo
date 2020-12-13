@@ -17,10 +17,10 @@ func PingPongFeature(l *logger.Logger) Feature {
 			return
 		}
 		var messageContent = message.Message.Content
-		if ping, err := regexp.MatchString("^ping$", strings.ToLower(messageContent)); err != nil {
+		if ping, err := regexp.MatchString("^ping$", strings.ToLower(messageContent)); err == nil {
 			if ping {
 				session.ChannelMessageSend(message.ChannelID, "Pong!")
-			} else if pong, err := regexp.MatchString("^pong$", strings.ToLower(messageContent)); err != nil {
+			} else if pong, err := regexp.MatchString("^pong$", strings.ToLower(messageContent)); err == nil {
 				if pong {
 					session.ChannelMessageSend(message.ChannelID, "Ping!")
 				}
