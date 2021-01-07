@@ -3,6 +3,8 @@ package kirobo
 import (
 	"kirobo/features"
 	"kirobo/logger"
+	"log"
+	"os"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -24,10 +26,7 @@ type Kirobo struct {
 func BuildKirobo(logPrefix string) *Kirobo {
 	k := new(Kirobo)
 	k.session = nil
-	k.log = logger.CreateLogger()
-	k.log.InfoFormat = logPrefix + "#" + logger.InfoFormat
-	k.log.DebugFormat = logPrefix + "#" + logger.DebugFormat
-	k.log.ErrorFormat = logPrefix + "#" + logger.ErrorFormat
+	k.log = logger.New(os.Stdout, os.Stderr, logPrefix, log.LstdFlags|log.Lshortfile)
 	k.features = make(map[features.FeatureKey]features.Feature)
 	k.features[PingPong] = features.PingPongFeature(k.log)
 	return k

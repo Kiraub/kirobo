@@ -1,114 +1,123 @@
 package logger
 
 import (
-	"fmt"
-	"os"
+	"context"
+	"io"
+	"log"
+	"sync"
 )
 
 const (
-	// InfoFormat is the default info logging format
-	InfoFormat = "INFO: %v\n"
-	// DebugFormat is the default debug logging format
-	DebugFormat = "DEBUG: %v\n"
-	// ErrorFormat is the default error logging format
-	ErrorFormat = "ERROR: %v\n"
+	// InfoPrefix is the default info logging prefix
+	InfoPrefix = "[INFO]"
+	// DebugPrefix is the default debug logging prefix
+	DebugPrefix = "[DEBUG]"
+	// ErrorPrefix is the default error logging prefix
+	ErrorPrefix = "[ERROR]"
 )
 
-var (
-	// InfoLogEnabled controls whether Infof prints log
-	InfoLogEnabled = true
-	// DebugLogEnabled controls whether Infof prints log
-	DebugLogEnabled = true
-	// ErrorLogEnabled controls whether Infof prints log
-	ErrorLogEnabled = true
-)
+type key int
 
-func fPrintf(file *os.File, metaFormat string, format string, args ...interface{}) (int, error) {
-	return fmt.Fprintf(file, fmt.Sprintf(metaFormat, fmt.Sprintf(format, args...)))
+const loggerKey key = 0
+
+type mutexBool struct {
+	v bool
+	m sync.Mutex
 }
 
-// Infof prints info log to the default out stream. It returns bytes written and any error encountered.
-func Infof(format string, args ...interface{}) (int, error) {
-	if !InfoLogEnabled {
-		return 0, nil
-	}
-	return fPrintf(os.Stdout, InfoFormat, format, args...)
+func (r *mutexBool) Set(nv bool) {
+	r.m.Lock()
+	defer r.m.Unlock()
+	r.v = nv
 }
 
-// Debugf prints debug log to the default out stream. It returns bytes written and any error encountered.
-func Debugf(format string, args ...interface{}) (int, error) {
-	if !DebugLogEnabled {
-		return 0, nil
-	}
-	return fPrintf(os.Stderr, DebugFormat, format, args...)
-}
-
-// Errorf prints error log to the default out stream. It returns bytes written and any error encountered.
-func Errorf(format string, args ...interface{}) (int, error) {
-	if !ErrorLogEnabled {
-		return 0, nil
-	}
-	return fPrintf(os.Stderr, ErrorFormat, format, args...)
+func (r *mutexBool) Get() bool {
+	r.m.Lock()
+	defer r.m.Unlock()
+	return r.v
 }
 
 // Logger is a struct that contains logging functions
 type Logger struct {
-	InfoFormat      string
-	DebugFormat     string
-	ErrorFormat     string
-	InfoOut         *os.File
-	DebugOut        *os.File
-	ErrorOut        *os.File
-	InfoLogEnabled  bool
-	DebugLogEnabled bool
-	ErrorLogEnabled bool
+	lInfo  *log.Logger
+	lDebug *log.Logger
+	lError *log.Logger
+
+	infoLogEnabled  *mutexBool
+	debugLogEnabled *mutexBool
+	errorLogEnabled *mutexBool
 }
 
-// CreateLogger returns a new logger struct with default formatting strings and output streams
-func CreateLogger() *Logger {
+// New creates a new logger
+func New(out io.Writer, err io.Writer, prefix string, flag int) *Logger {
 	l := new(Logger)
-	l.InfoFormat = InfoFormat
-	l.DebugFormat = DebugFormat
-	l.ErrorFormat = ErrorFormat
-	l.InfoOut = os.Stdout
-	l.DebugOut = os.Stderr
-	l.ErrorOut = os.Stderr
-	l.InfoLogEnabled = true
-	l.DebugLogEnabled = true
-	l.ErrorLogEnabled = true
+
+	l.lInfo = log.New(out, prefix+" "+InfoPrefix, flag)
+	l.lDebug = log.New(err, prefix+" "+DebugPrefix, flag)
+	l.lError = log.New(err, prefix+" "+ErrorPrefix, flag)
+
+	l.infoLogEnabled.Set(true)
+	l.debugLogEnabled.Set(true)
+	l.errorLogEnabled.Set(true)
 	return l
 }
 
+// NewContext returns a new Context that carries a provided Logger value
+func NewContext(ctx context.Context, logger Logger) context.Context {
+	return context.WithValue(ctx, loggerKey, logger)
+}
+
+// FromContext extracts a Logger from a Context
+func FromContext(ctx context.Context) (Logger, bool) {
+	logger, ok := ctx.Value(loggerKey).(Logger)
+	return logger, ok
+}
+
+// ToggleInfo ...
+func (r *Logger) ToggleInfo(shouldPrint bool) {
+	r.infoLogEnabled.Set(shouldPrint)
+}
+
+// ToggleDebug ...
+func (r *Logger) ToggleDebug(shouldPrint bool) {
+	r.debugLogEnabled.Set(shouldPrint)
+}
+
+// ToggleError ...
+func (r *Logger) ToggleError(shouldPrint bool) {
+	r.errorLogEnabled.Set(shouldPrint)
+}
+
 // Enter prints debug log that records region entering
-func (r *Logger) Enter(region string) (int, error) {
-	return r.Debugf("-> Entering %v", region)
+func (r *Logger) Enter(region string) {
+	r.Debugf("-> Entering %v", region)
 }
 
 // Exit prints debug log that records region exiting
-func (r *Logger) Exit(region string) (int, error) {
-	return r.Debugf("<- Exitting %v", region)
+func (r *Logger) Exit(region string) {
+	r.Debugf("<- Exitting %v", region)
 }
 
 // Infof ...
-func (r *Logger) Infof(format string, args ...interface{}) (int, error) {
-	if !r.InfoLogEnabled {
-		return 0, nil
+func (r *Logger) Infof(format string, args ...interface{}) {
+	if !r.infoLogEnabled.Get() {
+		return
 	}
-	return fPrintf(r.InfoOut, r.InfoFormat, format, args...)
+	r.lInfo.Printf(format, args...)
 }
 
 // Debugf ...
-func (r *Logger) Debugf(format string, args ...interface{}) (int, error) {
-	if !r.DebugLogEnabled {
-		return 0, nil
+func (r *Logger) Debugf(format string, args ...interface{}) {
+	if !r.debugLogEnabled.Get() {
+		return
 	}
-	return fPrintf(r.DebugOut, r.DebugFormat, format, args...)
+	r.lDebug.Printf(format, args...)
 }
 
 // Errorf ...
-func (r *Logger) Errorf(format string, args ...interface{}) (int, error) {
-	if !r.ErrorLogEnabled {
-		return 0, nil
+func (r *Logger) Errorf(format string, args ...interface{}) {
+	if !r.errorLogEnabled.Get() {
+		return
 	}
-	return fPrintf(r.ErrorOut, r.ErrorFormat, format, args...)
+	r.lError.Printf(format, args...)
 }
